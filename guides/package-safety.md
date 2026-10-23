@@ -60,20 +60,31 @@ Without Socket consent, an approved plan can use the same npm command without `s
 
 ### Wait before taking new versions
 
-A waiting period skips versions newer than an agreed age, so a project isn't among the first to install a compromised release. [pnpm's documentation](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) says most malicious releases are discovered and removed within an hour; a few days adds margin. The delay also holds back security fixes, so an urgent update needs a named exception in the tool's exclusion setting. Turning a waiting period on edits project or user configuration and needs approval like any other change.
+A waiting period skips newly published dependency versions. [pnpm's documentation](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) says most malicious releases are discovered and removed within an hour; waiting can give detection more time. That is the vendor's assessment, not a guarantee about any release. Seven days below is an example to discuss, not a universal rule. This applies to development dependencies, not a reason to postpone OS or browser security updates.
 
-Install-script defaults also differ between tools and versions. Check the installed version instead of assuming. A setting that an older tool doesn't recognize protects nothing.
+The delay can also hold back a needed security fix. Propose an owner-approved exception for the reviewed package and exact fixed version where supported. Record the reason and when to remove it. A name-only exception may admit every future release of that package; don't leave a broad exemption behind. Changing the age policy, script permissions or an exception needs approval.
 
-| Tool | About seven days | Unit | Dependency install scripts by default |
+Match both the installed tool version and its effective configuration. Existing project/user settings, lockfiles, flags or environment overrides can change the defaults below. An unsupported or ignored setting provides no protection. Don't dump credential-bearing configuration files to check it.
+
+| Tool | Example seven-day setting | Units and version scope | Dependency install-script behavior |
 |---|---|---|---|
-| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) 11.10 or later | `min-release-age=7` in `.npmrc` | Days. Older npm prints `Unknown user config "min-release-age"` and ignores it. | [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) blocks them unless listed in `allowScripts`. npm 11 and earlier run them unless `--ignore-scripts` is used. |
-| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) 10.16 or later | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` | Minutes. pnpm 11 defaults to one day. | [Blocked](https://pnpm.io/settings/build) until allowed in `allowBuilds`. |
-| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | `npmMinimalAgeGate: "1w"` in `.yarnrc.yml` | A duration. | Third-party `postinstall` scripts are off unless [`enableScripts`](https://yarnpkg.com/configuration/yarnrc#enableScripts) is turned on, per current docs. |
-| [Bun](https://bun.com/docs/pm/cli/install) | `minimumReleaseAge = 604800` under `[install]` in `bunfig.toml` | Seconds. | [Run only](https://bun.com/docs/pm/lifecycle) for packages in `trustedDependencies` or Bun's default list of popular npm packages. |
-| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | `exclude-newer = "7 days"` | A duration, compared with each file's upload time. | Source builds can run code too. [`no-build = true`](https://docs.astral.sh/uv/reference/settings/#no-build) refuses them, except the project's own workspace packages. |
-| [pip](https://pip.pypa.io/en/stable/cli/pip_install/) | `--uploaded-prior-to P7D` | A duration. Recent pip only. | No install scripts, but building a source package [can run its code](https://pip.pypa.io/en/stable/topics/secure-installs/). `--only-binary :all:` refuses source packages. |
+| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) | `min-release-age=7` in `.npmrc` | Days; introduced in [11.10.0](https://github.com/npm/cli/releases/tag/v11.10.0). Older versions can warn and ignore it. | [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) blocks unapproved dependency scripts by default. npm 11's default differs; retain explicit `--ignore-scripts` for the initial installation. |
+| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` | Minutes; age gate requires 10.16+. pnpm 11's built-in one-day default has different strictness from an explicitly configured policy. | [Script approval](https://pnpm.io/settings/build#allowbuilds) uses `allowBuilds` from 10.26; earlier pnpm 10 uses [`onlyBuiltDependencies`](https://pnpm.io/10.x/settings#onlybuiltdependencies). Don't apply a newer permission setting to an older tool. |
+| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | `npmMinimalAgeGate: "1w"` in `.yarnrc.yml` | Duration; age gate introduced in 4.12. | [Default changed in 4.14](https://github.com/yarnpkg/berry/blob/ef16bb2e5826f2b4c342f387e4ac50fea86d4a51/packages/docusaurus/docs/features/security.mdx): earlier versions run third-party postinstalls by default. Check `enableScripts` and package-specific overrides; workspace scripts are a separate scope. |
+| [Bun](https://bun.com/docs/pm/cli/install) | `minimumReleaseAge = 604800` under `[install]` in `bunfig.toml` | Numeric value is seconds; verify support in the installed version. | [Allowlisted scripts](https://bun.com/docs/pm/lifecycle) include `trustedDependencies` and Bun's default list. An allowlist is not the same as all scripts being disabled. |
+| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | `exclude-newer = "7 days"` in `uv.toml`, or under `[tool.uv]` in `pyproject.toml` | Duration, compared with each distribution file's upload time; verify supported syntax. | [`no-build = true`](https://docs.astral.sh/uv/reference/settings/#no-build) prevents ordinary source builds, but workspace packages and editable requirements can still build and execute backend code. Previously built cached wheels can also be reused. |
+| [pip](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to) | `--uploaded-prior-to P7D` on the agreed install command | Duration; requires a version supporting the option and an index supplying upload-time metadata. | [Source builds can execute code](https://pip.pypa.io/en/stable/topics/secure-installs/). `--only-binary :all:` rejects source distributions, but neither an age filter nor a wheel proves harmless code. |
 
-A waiting period limits exposure to brand-new releases. It doesn't review older versions or replace the review above.
+**Coverage gaps:** Bun applies its gate to new resolutions, leaving existing `bun.lock` entries unchanged, and accepts versions with no timestamp. pip's cutoff isn't effective on indexes without upload times. pnpm also has version-specific missing-time, strictness and lockfile-trust settings. A timestamp, old lockfile or successful exit alone isn't evidence that the entire dependency tree was filtered. Git/file/URL dependencies and build dependencies need their own documented scope. Don't delete a lockfile or clear caches to force a check without approval.
+
+Before calling an approved age policy verified, the agent must:
+
+- Record the trusted manager/version, effective age value and units, registry timestamp support, lockfile handling and relevant overrides. Check selected nonsecret values only.
+- Explain what is covered: new resolutions, existing locked entries, indirect dependencies and source/build paths. Anything not established stays unknown.
+- If supported, propose a documented no-execution test with a harmless fixture on each side of the cutoff: a too-new candidate must be refused and an eligible one must remain eligible. Network requests and any downloads need their own agreed scope. Don't assume an arbitrary `--dry-run` cannot execute code.
+- Keep install/build scripts and sandbox boundaries in scope independently. No malware samples, unreviewed helper installations or blanket script approvals for testing. If a behavior test isn't available, label enforcement unverified.
+
+A waiting period limits exposure to brand-new releases. It doesn't review older versions, remove previously downloaded code or replace the review above. No cross-version package-manager behavior tests were performed for this documentation update.
 
 ### Stop on a gap, then verify
 
@@ -99,6 +110,9 @@ Propose this as a narrow addition to the project's existing `AGENTS.md` or `CLAU
 Before adding, updating, installing or executing dependencies:
 Read Safer Devices guides/package-safety.md and agree the project scope.
 Review exact direct/indirect versions, source, scripts and current advisories.
+Propose a release-age policy only with approval; verify version, units,
+timestamp/lockfile coverage and behavior, not just a saved config entry.
+Urgent patch exceptions need a reviewed target and a removal plan.
 Do not execute packages to vet them. Do not read secrets or dump configs.
 Explain external metadata disclosure before proposing a scanner or query.
 Ask separately for tool setup and the exact dependency installation.

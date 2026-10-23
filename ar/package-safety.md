@@ -62,20 +62,31 @@ sfw npm ci --ignore-scripts --no-audit --no-fund
 
 ### الانتظار قبل قبول الإصدارات الجديدة
 
-فترة الانتظار تستبعد الإصدارات الأحدث من عمر متفق عليه، فلا يكون المشروع بين أوائل من يثبّت إصدارًا مخترقًا. يذكر [توثيق pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) أن معظم الإصدارات الخبيثة تُكتشف وتُزال من السجل خلال ساعة، وبضعة أيام تضيف هامشًا. التأخير يؤجل إصلاحات الأمان أيضًا، لذلك يحتاج التحديث العاجل استثناءً بالاسم في إعداد الاستثناء لدى الأداة. تفعيل فترة الانتظار يعدّل إعدادات المشروع أو المستخدم، ويحتاج موافقة مثل أي تغيير آخر.
+فترة الانتظار تستبعد إصدارات التبعيات المنشورة حديثًا. يذكر [توثيق pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) أن معظم الإصدارات الخبيثة تُكتشف وتُزال خلال ساعة، وقد يمنح الانتظار وقتًا إضافيًا للكشف. هذا تقييم الجهة المطوّرة، وليس ضمانًا لأي إصدار. الأيام السبعة أدناه مثال للنقاش، لا قاعدة عامة. الإعدادات لتبعيات التطوير، وليست سببًا لتأجيل تحديثات أمان النظام أو المتصفح.
 
-السلوك الافتراضي لسكربتات التثبيت يختلف أيضًا بين الأدوات وإصداراتها. المرجع هو الإصدار المثبّت فعلًا، لا الافتراض. الإعداد الذي لا تعرفه أداة قديمة لا يحمي شيئًا.
+قد يؤخر الانتظار تصحيحًا أمنيًا مطلوبًا أيضًا. اقتراح استثناء بموافقة، للحزمة المراجعة والإصدار المصحح المحدد حيث تدعم الأداة ذلك، مع سبب وموعد إزالة. الاستثناء بالاسم وحده قد يسمح بكل إصدار مستقبلي للحزمة؛ لا إبقاء لإعفاء واسع. تغيير سياسة العمر أو صلاحيات السكربتات أو الاستثناء يحتاج موافقة.
 
-| الأداة | نحو سبعة أيام | الوحدة | سكربتات التثبيت في التبعيات افتراضيًا |
+مطابقة إصدار الأداة المثبّت وإعدادها الفعلي معًا. إعدادات المشروع والمستخدم وملف القفل والخيارات ومتغيرات البيئة قد تغيّر الافتراضيات أدناه. الإعداد غير المدعوم أو المتجاهل لا يوفر حماية. لا تفريغ لملفات إعداد قد تحتوي بيانات دخول للتحقق منه.
+
+| الأداة | مثال لسبعة أيام | الوحدة ونطاق الإصدار | سلوك سكربتات تثبيت التبعيات |
 |---|---|---|---|
-| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) بدءًا من 11.10 | <code dir="ltr">min-release-age=7</code> في <code dir="ltr">.npmrc</code> | بالأيام. الإصدارات الأقدم تعرض <code dir="ltr">Unknown user config "min-release-age"</code> وتتجاهل الإعداد. | يمنعها [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) ما لم تُذكر في <code dir="ltr">allowScripts</code>. يشغّلها npm 11 وما قبله ما لم يُستخدم <code dir="ltr">--ignore-scripts</code>. |
-| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) بدءًا من 10.16 | <code dir="ltr">minimumReleaseAge: 10080</code> في <code dir="ltr">pnpm-workspace.yaml</code> | بالدقائق. القيمة الافتراضية في pnpm 11 يوم واحد. | [ممنوعة](https://pnpm.io/settings/build) حتى السماح بها في <code dir="ltr">allowBuilds</code>. |
-| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | <code dir="ltr">npmMinimalAgeGate: "1w"</code> في <code dir="ltr">.yarnrc.yml</code> | مدة زمنية. | سكربتات <code dir="ltr">postinstall</code> من الحزم الخارجية متوقفة ما لم يُفعَّل [<code dir="ltr">enableScripts</code>](https://yarnpkg.com/configuration/yarnrc#enableScripts)، بحسب التوثيق الحالي. |
-| [Bun](https://bun.com/docs/pm/cli/install) | <code dir="ltr">minimumReleaseAge = 604800</code> ضمن <code dir="ltr">[install]</code> في <code dir="ltr">bunfig.toml</code> | بالثواني. | [تعمل فقط](https://bun.com/docs/pm/lifecycle) للحزم المذكورة في <code dir="ltr">trustedDependencies</code> أو في قائمة Bun الافتراضية لحزم npm الشائعة. |
-| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | <code dir="ltr">exclude-newer = "7 days"</code> | مدة زمنية، مقارنة بوقت رفع كل ملف. | بناء الحزم المصدرية قد يشغّل شيفرة أيضًا. الإعداد [<code dir="ltr">no-build = true</code>](https://docs.astral.sh/uv/reference/settings/#no-build) يرفض بناءها، باستثناء حزم مساحة العمل الخاصة بالمشروع. |
-| [pip](https://pip.pypa.io/en/stable/cli/pip_install/) | <code dir="ltr">--uploaded-prior-to P7D</code> | مدة زمنية، في الإصدارات الحديثة فقط. | لا سكربتات تثبيت، لكن بناء حزمة مصدرية [قد يشغّل شيفرتها](https://pip.pypa.io/en/stable/topics/secure-installs/). الخيار <code dir="ltr">--only-binary :all:</code> يرفض الحزم المصدرية. |
+| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) | <code dir="ltr">min-release-age=7</code> في <code dir="ltr">.npmrc</code> | بالأيام؛ أضيف في [11.10.0](https://github.com/npm/cli/releases/tag/v11.10.0). قد تحذّر النسخ الأقدم وتتجاهله. | يمنع [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) سكربتات التبعيات غير المعتمدة افتراضيًا. افتراضي npm 11 مختلف؛ يبقى <code dir="ltr">--ignore-scripts</code> صريحًا للتثبيت الأول. |
+| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) | <code dir="ltr">minimumReleaseAge: 10080</code> في <code dir="ltr">pnpm-workspace.yaml</code> | بالدقائق؛ شرط العمر يتطلب 10.16 فأحدث. افتراضي اليوم الواحد في pnpm 11 يختلف في صرامته عن سياسة مضبوطة صراحة. | تستخدم [موافقة السكربتات](https://pnpm.io/settings/build#allowbuilds) <code dir="ltr">allowBuilds</code> بدءًا من 10.26؛ تستخدم نسخ pnpm 10 الأقدم [<code dir="ltr">onlyBuiltDependencies</code>](https://pnpm.io/10.x/settings#onlybuiltdependencies). لا تطبيق لإعداد صلاحيات حديث على أداة أقدم. |
+| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | <code dir="ltr">npmMinimalAgeGate: "1w"</code> في <code dir="ltr">.yarnrc.yml</code> | مدة زمنية؛ شرط العمر أضيف في 4.12. | [تغيّر الافتراضي في 4.14](https://github.com/yarnpkg/berry/blob/ef16bb2e5826f2b4c342f387e4ac50fea86d4a51/packages/docusaurus/docs/features/security.mdx)؛ النسخ الأقدم تشغّل سكربتات ما بعد التثبيت الخارجية افتراضيًا. فحص <code dir="ltr">enableScripts</code> واستثناءات الحزم؛ سكربتات مساحة العمل نطاق منفصل. |
+| [Bun](https://bun.com/docs/pm/cli/install) | <code dir="ltr">minimumReleaseAge = 604800</code> ضمن <code dir="ltr">[install]</code> في <code dir="ltr">bunfig.toml</code> | القيمة الرقمية بالثواني؛ التحقق من دعم النسخة المثبّتة. | [السكربتات المسموحة](https://bun.com/docs/pm/lifecycle) تشمل <code dir="ltr">trustedDependencies</code> وقائمة Bun الافتراضية. قائمة السماح لا تعني تعطيل كل السكربتات. |
+| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | <code dir="ltr">exclude-newer = "7 days"</code> في <code dir="ltr">uv.toml</code>، أو ضمن <code dir="ltr">[tool.uv]</code> في <code dir="ltr">pyproject.toml</code> | مدة تُقارن بوقت رفع كل ملف توزيع؛ التحقق من دعم الصيغة. | يمنع [<code dir="ltr">no-build = true</code>](https://docs.astral.sh/uv/reference/settings/#no-build) البناء المصدري المعتاد، لكن حزم مساحة العمل والمتطلبات القابلة للتحرير قد تُبنى وتشغّل شيفرة جهة البناء. وقد تُستخدم ملفات wheel مبنية سابقًا من الذاكرة المؤقتة. |
+| [pip](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to) | <code dir="ltr">--uploaded-prior-to P7D</code> في أمر التثبيت المتفق عليه | مدة زمنية؛ تتطلب نسخة تدعم الخيار وفهرسًا يوفر بيانات وقت الرفع. | [البناء المصدري قد يشغّل شيفرة](https://pip.pypa.io/en/stable/topics/secure-installs/). يرفض <code dir="ltr">--only-binary :all:</code> التوزيعات المصدرية، لكن شرط العمر وملف wheel لا يثبتان خلو الشيفرة من الضرر. |
 
-فترة الانتظار تحدّ من التعرض للإصدارات الجديدة جدًا. لا تراجع الإصدارات الأقدم، ولا تغني عن المراجعة أعلاه.
+**فجوات التغطية:** يطبق Bun الشرط عند حل إصدارات جديدة، ويترك مدخلات <code dir="ltr">bun.lock</code> القائمة دون تغيير، ويسمح بإصدارات بلا وقت نشر. لا يعمل قيد pip مع فهارس لا توفر وقت الرفع. ولدى pnpm إعدادات لغياب الوقت والصرامة والثقة بالقفل تختلف حسب الإصدار. وجود وقت نشر أو قفل قديم أو حالة خروج ناجحة وحده لا يثبت ترشيح شجرة التبعيات كاملة. تبعيات Git والملفات والروابط وتبعيات البناء تحتاج نطاقًا موثقًا منفصلًا. لا حذف للقفل أو تنظيف للذاكرة لإجبار الفحص بلا موافقة.
+
+قبل اعتبار سياسة العمر الموافق عليها متحققًا منها، يلزم لأداة المساعدة:
+
+- تسجيل المدير الموثوق وإصداره والعمر الفعلي ووحدته ودعم السجل لوقت النشر وسلوك القفل والتجاوزات ذات الصلة، بقراءة قيم محددة غير سرية فقط.
+- شرح التغطية: الحلول الجديدة والمدخلات المقفلة والتبعيات غير المباشرة ومسارات المصدر والبناء. ما لم يثبت يبقى مجهولًا.
+- عند الدعم، اقتراح اختبار موثّق بلا تنفيذ، ببيانات تجريبية غير ضارة على جانبي الحد: رفض الإصدار الأحدث من المسموح وبقاء الأقدم مؤهلًا. الاتصالات وأي تنزيلات بنطاق متفق عليه. لا افتراض بأن خيار <code dir="ltr">--dry-run</code> عشوائيًا يمنع تشغيل الشيفرة.
+- مراجعة سكربتات التثبيت والبناء وحدود العزل بشكل مستقل. لا عينات خبيثة أو أدوات مساعدة غير مراجعة أو موافقة شاملة للسكربتات للاختبار. عند غياب اختبار سلوك متاح، يبقى فرض السياسة غير متحقق منه.
+
+فترة الانتظار تقلل التعرض للإصدارات الجديدة جدًا، ولا تراجع الأقدم أو تزيل شيفرة نُزّلت سابقًا أو تستبدل المراجعة أعلاه. لم تُجرَ اختبارات سلوك عبر إصدارات مديري الحزم لهذا التحديث التوثيقي.
 
 ### التوقف عند الفجوة، ثم التحقق
 
@@ -101,6 +112,9 @@ sfw npm ci --ignore-scripts --no-audit --no-fund
 قبل إضافة تبعية أو تحديثها أو تثبيتها أو تشغيلها:
 قراءة Safer Devices ar/package-safety.md والاتفاق على نطاق المشروع.
 مراجعة الإصدارات المباشرة وغير المباشرة والمصدر والسكربتات والتنبيهات.
+اقتراح سياسة عمر بموافقة فقط، والتحقق من الإصدار والوحدة والتغطية
+للوقت والقفل والسلوك، لا الاكتفاء بإعداد محفوظ.
+استثناء التصحيح العاجل يحتاج هدفًا مراجعًا وخطة لإزالته.
 لا تشغيل للحزم لفحص موثوقيتها، ولا قراءة للأسرار أو تفريغ للإعدادات.
 توضيح الإفصاح الخارجي قبل اقتراح فاحص أو استعلام.
 موافقتان منفصلتان لإعداد الأداة ولتثبيت التبعيات المحدد.
