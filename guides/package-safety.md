@@ -58,6 +58,23 @@ Without Socket consent, an approved plan can use the same npm command without `s
 
 `--ignore-scripts` suppresses installation lifecycle scripts, but doesn't make downloaded code safe. An explicit `npm run`, `npm test` or `npm start` still runs its named task. Needed build scripts, native compilation, tests and application startup require review and separate execution approval. Don't restore scripts for the whole tree to fix a failed build. [npm ignore-scripts behavior](https://docs.npmjs.com/cli/v11/commands/npm-ci/#ignore-scripts) and [lifecycle documentation](https://docs.npmjs.com/cli/v11/using-npm/scripts/).
 
+### Wait before taking new versions
+
+A waiting period skips versions newer than an agreed age, so a project isn't among the first to install a compromised release. [pnpm's documentation](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) says most malicious releases are discovered and removed within an hour; a few days adds margin. The delay also holds back security fixes, so an urgent update needs a named exception in the tool's exclusion setting. Turning a waiting period on edits project or user configuration and needs approval like any other change.
+
+Install-script defaults also differ between tools and versions. Check the installed version instead of assuming. A setting that an older tool doesn't recognize protects nothing.
+
+| Tool | About seven days | Unit | Dependency install scripts by default |
+|---|---|---|---|
+| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) 11.10 or later | `min-release-age=7` in `.npmrc` | Days. Older npm prints `Unknown user config "min-release-age"` and ignores it. | [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) blocks them unless listed in `allowScripts`. npm 11 and earlier run them unless `--ignore-scripts` is used. |
+| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) 10.16 or later | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` | Minutes. pnpm 11 defaults to one day. | [Blocked](https://pnpm.io/settings/build) until allowed in `allowBuilds`. |
+| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | `npmMinimalAgeGate: "1w"` in `.yarnrc.yml` | A duration. | Third-party `postinstall` scripts are off unless [`enableScripts`](https://yarnpkg.com/configuration/yarnrc#enableScripts) is turned on, per current docs. |
+| [Bun](https://bun.com/docs/pm/cli/install) | `minimumReleaseAge = 604800` under `[install]` in `bunfig.toml` | Seconds. | [Run only](https://bun.com/docs/pm/lifecycle) for packages in `trustedDependencies` or Bun's default list of popular npm packages. |
+| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | `exclude-newer = "7 days"` | A duration, compared with each file's upload time. | Source builds can run code too. [`no-build = true`](https://docs.astral.sh/uv/reference/settings/#no-build) refuses them, except the project's own workspace packages. |
+| [pip](https://pip.pypa.io/en/stable/cli/pip_install/) | `--uploaded-prior-to P7D` | A duration. Recent pip only. | No install scripts, but building a source package [can run its code](https://pip.pypa.io/en/stable/topics/secure-installs/). `--only-binary :all:` refuses source packages. |
+
+A waiting period limits exposure to brand-new releases. It doesn't review older versions or replace the review above.
+
 ### Stop on a gap, then verify
 
 | Result | Required agent action |
@@ -100,4 +117,4 @@ These instructions and shell aliases are reminders, not an enforced security bou
 
 The 2024 XZ backdoor was a compromised compression-library release affecting some Linux distribution paths. It illustrates supply-chain risk; an npm filter isn't evidence it would have stopped XZ. [Red Hat's incident account](https://www.redhat.com/en/blog/understanding-red-hats-response-xz-security-incident).
 
-Sources reviewed **23 October 2026**: Socket Overview/Free, npm ci/scripts and Red Hat, linked above. Recheck current behavior before setup. No Socket binary was installed or tested for this documentation update; commands are reviewed examples, not an end-to-end product evaluation.
+Sources reviewed **23 October 2026**: Socket Overview/Free, npm ci/scripts, Red Hat and the package-manager settings in the waiting-period table, linked above. Recheck current behavior before setup. No Socket binary was installed or tested for this documentation update; commands are reviewed examples, not an end-to-end product evaluation.
