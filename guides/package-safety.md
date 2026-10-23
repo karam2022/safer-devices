@@ -58,6 +58,34 @@ Without Socket consent, an approved plan can use the same npm command without `s
 
 `--ignore-scripts` suppresses installation lifecycle scripts, but doesn't make downloaded code safe. An explicit `npm run`, `npm test` or `npm start` still runs its named task. Needed build scripts, native compilation, tests and application startup require review and separate execution approval. Don't restore scripts for the whole tree to fix a failed build. [npm ignore-scripts behavior](https://docs.npmjs.com/cli/v11/commands/npm-ci/#ignore-scripts) and [lifecycle documentation](https://docs.npmjs.com/cli/v11/using-npm/scripts/).
 
+### Wait before taking new versions
+
+A waiting period skips newly published dependency versions. [pnpm's documentation](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) says most malicious releases are discovered and removed within an hour; waiting can give detection more time. That is the vendor's assessment, not a guarantee about any release. Seven days below is an example to discuss, not a universal rule. This applies to development dependencies, not a reason to postpone OS or browser security updates.
+
+The delay can also hold back a needed security fix. Propose an owner-approved exception for the reviewed package and exact fixed version where supported. Record the reason and when to remove it. A name-only exception may admit every future release of that package; don't leave a broad exemption behind. Changing the age policy, script permissions or an exception needs approval.
+
+Match both the installed tool version and its effective configuration. Existing project/user settings, lockfiles, flags or environment overrides can change the defaults below. An unsupported or ignored setting provides no protection. Don't dump credential-bearing configuration files to check it.
+
+| Tool | Example seven-day setting | Units and version scope | Dependency install-script behavior |
+|---|---|---|---|
+| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) | `min-release-age=7` in `.npmrc` | Days; introduced in [11.10.0](https://github.com/npm/cli/releases/tag/v11.10.0). Older versions can warn and ignore it. | [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) blocks unapproved dependency scripts by default. npm 11's default differs; retain explicit `--ignore-scripts` for the initial installation. |
+| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) | `minimumReleaseAge: 10080` in `pnpm-workspace.yaml` | Minutes; age gate requires 10.16+. pnpm 11's built-in one-day default has different strictness from an explicitly configured policy. | [Script approval](https://pnpm.io/settings/build#allowbuilds) uses `allowBuilds` from 10.26; earlier pnpm 10 uses [`onlyBuiltDependencies`](https://pnpm.io/10.x/settings#onlybuiltdependencies). Don't apply a newer permission setting to an older tool. |
+| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | `npmMinimalAgeGate: "1w"` in `.yarnrc.yml` | Duration; age gate introduced in 4.12. | [Default changed in 4.14](https://github.com/yarnpkg/berry/blob/ef16bb2e5826f2b4c342f387e4ac50fea86d4a51/packages/docusaurus/docs/features/security.mdx): earlier versions run third-party postinstalls by default. Check `enableScripts` and package-specific overrides; workspace scripts are a separate scope. |
+| [Bun](https://bun.com/docs/pm/cli/install) | `minimumReleaseAge = 604800` under `[install]` in `bunfig.toml` | Numeric value is seconds; verify support in the installed version. | [Allowlisted scripts](https://bun.com/docs/pm/lifecycle) include `trustedDependencies` and Bun's default list. An allowlist is not the same as all scripts being disabled. |
+| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | `exclude-newer = "7 days"` in `uv.toml`, or under `[tool.uv]` in `pyproject.toml` | Duration, compared with each distribution file's upload time; verify supported syntax. | [`no-build = true`](https://docs.astral.sh/uv/reference/settings/#no-build) prevents ordinary source builds, but workspace packages and editable requirements can still build and execute backend code. Previously built cached wheels can also be reused. |
+| [pip](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-uploaded-prior-to) | `--uploaded-prior-to P7D` on the agreed install command | Duration; requires a version supporting the option and an index supplying upload-time metadata. | [Source builds can execute code](https://pip.pypa.io/en/stable/topics/secure-installs/). `--only-binary :all:` rejects source distributions, but neither an age filter nor a wheel proves harmless code. |
+
+**Coverage gaps:** Bun applies its gate to new resolutions, leaving existing `bun.lock` entries unchanged, and accepts versions with no timestamp. pip's cutoff isn't effective on indexes without upload times. pnpm also has version-specific missing-time, strictness and lockfile-trust settings. A timestamp, old lockfile or successful exit alone isn't evidence that the entire dependency tree was filtered. Git/file/URL dependencies and build dependencies need their own documented scope. Don't delete a lockfile or clear caches to force a check without approval.
+
+Before calling an approved age policy verified, the agent must:
+
+- Record the trusted manager/version, effective age value and units, registry timestamp support, lockfile handling and relevant overrides. Check selected nonsecret values only.
+- Explain what is covered: new resolutions, existing locked entries, indirect dependencies and source/build paths. Anything not established stays unknown.
+- If supported, propose a documented no-execution test with a harmless fixture on each side of the cutoff: a too-new candidate must be refused and an eligible one must remain eligible. Network requests and any downloads need their own agreed scope. Don't assume an arbitrary `--dry-run` cannot execute code.
+- Keep install/build scripts and sandbox boundaries in scope independently. No malware samples, unreviewed helper installations or blanket script approvals for testing. If a behavior test isn't available, label enforcement unverified.
+
+A waiting period limits exposure to brand-new releases. It doesn't review older versions, remove previously downloaded code or replace the review above. No cross-version package-manager behavior tests were performed for this documentation update.
+
 ### Stop on a gap, then verify
 
 | Result | Required agent action |
@@ -82,6 +110,9 @@ Propose this as a narrow addition to the project's existing `AGENTS.md` or `CLAU
 Before adding, updating, installing or executing dependencies:
 Read Safer Devices guides/package-safety.md and agree the project scope.
 Review exact direct/indirect versions, source, scripts and current advisories.
+Propose a release-age policy only with approval; verify version, units,
+timestamp/lockfile coverage and behavior, not just a saved config entry.
+Urgent patch exceptions need a reviewed target and a removal plan.
 Do not execute packages to vet them. Do not read secrets or dump configs.
 Explain external metadata disclosure before proposing a scanner or query.
 Ask separately for tool setup and the exact dependency installation.
@@ -100,4 +131,4 @@ These instructions and shell aliases are reminders, not an enforced security bou
 
 The 2024 XZ backdoor was a compromised compression-library release affecting some Linux distribution paths. It illustrates supply-chain risk; an npm filter isn't evidence it would have stopped XZ. [Red Hat's incident account](https://www.redhat.com/en/blog/understanding-red-hats-response-xz-security-incident).
 
-Sources reviewed **23 October 2026**: Socket Overview/Free, npm ci/scripts and Red Hat, linked above. Recheck current behavior before setup. No Socket binary was installed or tested for this documentation update; commands are reviewed examples, not an end-to-end product evaluation.
+Sources reviewed **23 October 2026**: Socket Overview/Free, npm ci/scripts, Red Hat and the package-manager settings in the waiting-period table, linked above. Recheck current behavior before setup. No Socket binary was installed or tested for this documentation update; commands are reviewed examples, not an end-to-end product evaluation.
