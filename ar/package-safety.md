@@ -60,6 +60,23 @@ sfw npm ci --ignore-scripts --no-audit --no-fund
 
 يعطّل `--ignore-scripts` سكربتات دورة التثبيت، لكنه لا يجعل الشيفرة المنزّلة آمنة. أوامر `npm run` و`npm test` و`npm start` الصريحة ما زالت تشغّل المهمة المطلوبة. البناء وتجميع المكونات الأصلية والاختبار وبدء التطبيق تحتاج مراجعة وموافقة تنفيذ منفصلة. لا إعادة تفعيل عامة للسكربتات لمعالجة فشل بناء. [سلوك ignore-scripts](https://docs.npmjs.com/cli/v11/commands/npm-ci/#ignore-scripts) و[توثيق دورة التثبيت](https://docs.npmjs.com/cli/v11/using-npm/scripts/).
 
+### الانتظار قبل قبول الإصدارات الجديدة
+
+فترة الانتظار تستبعد الإصدارات الأحدث من عمر متفق عليه، فلا يكون المشروع بين أوائل من يثبّت إصدارًا مخترقًا. يذكر [توثيق pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) أن معظم الإصدارات الخبيثة تُكتشف وتُزال من السجل خلال ساعة، وبضعة أيام تضيف هامشًا. التأخير يؤجل إصلاحات الأمان أيضًا، لذلك يحتاج التحديث العاجل استثناءً بالاسم في إعداد الاستثناء لدى الأداة. تفعيل فترة الانتظار يعدّل إعدادات المشروع أو المستخدم، ويحتاج موافقة مثل أي تغيير آخر.
+
+السلوك الافتراضي لسكربتات التثبيت يختلف أيضًا بين الأدوات وإصداراتها. المرجع هو الإصدار المثبّت فعلًا، لا الافتراض. الإعداد الذي لا تعرفه أداة قديمة لا يحمي شيئًا.
+
+| الأداة | نحو سبعة أيام | الوحدة | سكربتات التثبيت في التبعيات افتراضيًا |
+|---|---|---|---|
+| [npm](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) بدءًا من 11.10 | <code dir="ltr">min-release-age=7</code> في <code dir="ltr">.npmrc</code> | بالأيام. الإصدارات الأقدم تعرض <code dir="ltr">Unknown user config "min-release-age"</code> وتتجاهل الإعداد. | يمنعها [npm 12](https://docs.npmjs.com/cli/v12/commands/npm-install-scripts) ما لم تُذكر في <code dir="ltr">allowScripts</code>. يشغّلها npm 11 وما قبله ما لم يُستخدم <code dir="ltr">--ignore-scripts</code>. |
+| [pnpm](https://pnpm.io/settings/dependency-resolution#minimumreleaseage) بدءًا من 10.16 | <code dir="ltr">minimumReleaseAge: 10080</code> في <code dir="ltr">pnpm-workspace.yaml</code> | بالدقائق. القيمة الافتراضية في pnpm 11 يوم واحد. | [ممنوعة](https://pnpm.io/settings/build) حتى السماح بها في <code dir="ltr">allowBuilds</code>. |
+| [Yarn](https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate) | <code dir="ltr">npmMinimalAgeGate: "1w"</code> في <code dir="ltr">.yarnrc.yml</code> | مدة زمنية. | سكربتات <code dir="ltr">postinstall</code> من الحزم الخارجية متوقفة ما لم يُفعَّل [<code dir="ltr">enableScripts</code>](https://yarnpkg.com/configuration/yarnrc#enableScripts)، بحسب التوثيق الحالي. |
+| [Bun](https://bun.com/docs/pm/cli/install) | <code dir="ltr">minimumReleaseAge = 604800</code> ضمن <code dir="ltr">[install]</code> في <code dir="ltr">bunfig.toml</code> | بالثواني. | [تعمل فقط](https://bun.com/docs/pm/lifecycle) للحزم المذكورة في <code dir="ltr">trustedDependencies</code> أو في قائمة Bun الافتراضية لحزم npm الشائعة. |
+| [uv](https://docs.astral.sh/uv/reference/settings/#exclude-newer) | <code dir="ltr">exclude-newer = "7 days"</code> | مدة زمنية، مقارنة بوقت رفع كل ملف. | بناء الحزم المصدرية قد يشغّل شيفرة أيضًا. الإعداد [<code dir="ltr">no-build = true</code>](https://docs.astral.sh/uv/reference/settings/#no-build) يرفض بناءها، باستثناء حزم مساحة العمل الخاصة بالمشروع. |
+| [pip](https://pip.pypa.io/en/stable/cli/pip_install/) | <code dir="ltr">--uploaded-prior-to P7D</code> | مدة زمنية، في الإصدارات الحديثة فقط. | لا سكربتات تثبيت، لكن بناء حزمة مصدرية [قد يشغّل شيفرتها](https://pip.pypa.io/en/stable/topics/secure-installs/). الخيار <code dir="ltr">--only-binary :all:</code> يرفض الحزم المصدرية. |
+
+فترة الانتظار تحدّ من التعرض للإصدارات الجديدة جدًا. لا تراجع الإصدارات الأقدم، ولا تغني عن المراجعة أعلاه.
+
 ### التوقف عند الفجوة، ثم التحقق
 
 | النتيجة | تصرّف أداة المساعدة المطلوب |
@@ -102,6 +119,6 @@ sfw npm ci --ignore-scripts --no-audit --no-fund
 
 باب XZ الخلفي سنة 2024 كان إصدارًا مخترقًا من مكتبة ضغط وصل لبعض مسارات توزيعات Linux. يوضح خطر سلسلة التوريد، لكنه لا يثبت أن مرشّح npm كان سيمنعه. [شرح Red Hat للحادثة](https://www.redhat.com/en/blog/understanding-red-hats-response-xz-security-incident).
 
-مراجعة المصادر: **23 تشرين الأول 2026**، وشملت Socket Overview/Free وnpm ci/scripts وRed Hat المرتبطة أعلاه. يلزم إعادة التحقق قبل الإعداد. لم تُثبّت نسخة Socket أو تُختبر في هذا التحديث؛ الأوامر أمثلة مراجعة، وليست تقييمًا عمليًا كاملًا للمنتج.
+مراجعة المصادر: **23 تشرين الأول 2026**، وشملت Socket Overview/Free وnpm ci/scripts وRed Hat وإعدادات مديري الحزم في جدول فترة الانتظار، المرتبطة أعلاه. يلزم إعادة التحقق قبل الإعداد. لم تُثبّت نسخة Socket أو تُختبر في هذا التحديث؛ الأوامر أمثلة مراجعة، وليست تقييمًا عمليًا كاملًا للمنتج.
 
 </div>
